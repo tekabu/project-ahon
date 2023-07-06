@@ -1,0 +1,34 @@
+{
+	"emergency vehicle": {
+		"height": 1.99,
+		"width": 1.95
+	},
+	"half emergency vehicle": {
+		"height": 0.995,
+		"width": 0.975
+	},
+	"large vehicle": {
+		"height": 3.45,
+		"width": 2.48
+	},
+	"half large vehicle": {
+		"height": 1.725,
+		"width": 1.24
+	},
+	"medium vehicle": {
+		"height": 1.77,
+		"width" : 1.68
+	},
+	"half medium vehicle": {
+		"height": 0.885,
+		"width": 0.84
+	},
+	"small vehicle": {
+		"height": 0.76,
+		"width": 1.20
+	},
+	"half small vehicle": {
+		"height": 0.38,
+		"width": 0.6
+	}
+}
