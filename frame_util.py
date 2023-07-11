@@ -33,3 +33,7 @@ def frame_save(frame, path):
 	if os.path.isfile(path):
 		os.remove(path)
 	cv2.imwrite(path, frame)
+
+def frame_distance(focal_length, real_width, width_in_frame):
+	distance = (real_width * focal_length) / width_in_frame
+	return distance

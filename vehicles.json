@@ -1,34 +1,42 @@
 {
 	"emergency vehicle": {
 		"height": 1.99,
-		"width": 1.95
+		"width": 1.95,
+		"focal": 395.4825641
 	},
 	"half emergency vehicle": {
 		"height": 0.995,
-		"width": 0.975
+		"width": 0.975,
+		"focal": 395.4825641
 	},
 	"large vehicle": {
 		"height": 3.45,
-		"width": 2.48
+		"width": 2.48,
+		"focal": 498.7423387
 	},
 	"half large vehicle": {
 		"height": 1.725,
-		"width": 1.24
+		"width": 1.24,
+		"focal": 381.8790323
 	},
 	"medium vehicle": {
 		"height": 1.77,
-		"width" : 1.68
+		"width" : 1.68,
+		"focal": 467.1712274
 	},
 	"half medium vehicle": {
 		"height": 0.885,
-		"width": 0.84
+		"width": 0.84,
+		"focal": 644.7082738
 	},
 	"small vehicle": {
 		"height": 0.76,
-		"width": 1.20
+		"width": 1.20,
+		"focal": 171.9166898
 	},
 	"half small vehicle": {
 		"height": 0.38,
-		"width": 0.6
+		"width": 0.6,
+		"focal": 350.1857407
 	}
 }
