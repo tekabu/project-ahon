@@ -9,32 +9,21 @@ _runs = os.path.join(_dir, 'runs')
 fu.create_folder(_runs)
 
 _runs_count = fu.count_folders(_runs)
-_new_run = _runs_count + 1
-_run = os.path.join(_runs, 'run{}'.format(_new_run))
-fu.create_folder(_run)
-print('new run', _new_run)
+_run = os.path.join(_runs, 'run{}'.format(_runs_count+1))
+# fu.create_folder(_run)
 
-from flask import Flask, request, Response
 from ultralytics import YOLO
 import supervision as sv
 import frame_util as fru
 import pandas as pd
 import numpy as np
-import subprocess
 import threading
 import imutils
-import signal
 import time
 import json
 import cv2
-import sys
-
-MIN_DISTANCE = 5 # meters threshold
-FIRST_DETECTION_DELAY = 1 # seconds before distance computation after 1st detection
-
-app = Flask(__name__)
-gframe = None
-exit_app = False
+import win32com.client as wincom
+import pythoncom
 
 with open('vehicles.json', 'r') as file:
 	vehicles = json.load(file)
@@ -42,12 +31,13 @@ with open('vehicles.json', 'r') as file:
 vehicle_detections = {}
 
 def speak(msg, tracker_id):
-	process = subprocess.Popen(['/home/ubuntu/projects/lib/mimic1/mimic', '-t', msg, '-voice', 'rms'], 
-		stdout=subprocess.PIPE, 
-		stderr=subprocess.PIPE)
-	out, err = process.communicate()
+	pythoncom.CoInitialize()
+	voice = wincom.Dispatch("SAPI.SpVoice")
+	voice.Speak(msg)
+	# global vehicle_detections
+	# vehicle_detections[tracker_id]['time'] = int(round(time.time() * 1000))
 
-speaker = threading.Thread(target=speak, args=("This is a test", 0))
+speaker = threading.Thread(target=speak, args=("This is a test",))
 
 def get_index(tracker_id):
 	if tracker_id is None:
@@ -60,9 +50,7 @@ def get_index(tracker_id):
 
 	return index + 1;
 
-def video_source():
-	global gframe
-
+def main():
 	box_annotator = sv.BoxAnnotator(
 		thickness=2,
 		text_thickness=1,
@@ -70,24 +58,12 @@ def video_source():
 	)
 
 	model = YOLO("best_2023_06_21_001.pt")
-	source = "videos/video1a.mp4"
-	# source = 0 # camera
-	record_file = 'video{}.mp4'.format(_new_run)
-	record_filename = os.path.join(_run, record_file)
-	# fourcc = cv2.VideoWriter_fourcc(*'vp80') # webm
-	fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-	out = None
-
-	cam = cv2.VideoCapture(source)
-	fps = cam.get(cv2.CAP_PROP_FPS)
-	total_frames = int(cam.get(cv2.CAP_PROP_FRAME_COUNT))
-	cam.release()
+	source = "videos\\video1a.mp4"
+	#source = "images-distance\\random\\Screenshot 2023-06-27 233426.png"
+	csv_rows = []
 
 	try:
 		for result in model.track(source=source, stream=True, agnostic_nms=True, conf=0.7, verbose=False):
-			if exit_app:
-				break
-
 			frame = result.orig_img
 			frame0 = np.copy(frame)
 			
@@ -117,10 +93,10 @@ def video_source():
 						'time': int(round(time.time() * 1000))
 					}
 				else:
-					if estimated_distance <= MIN_DISTANCE:
+					if estimated_distance < 5:
 						previous_distance = vehicle_detections[tracker_id]['distance']
 						previous_time = vehicle_detections[tracker_id]['time']
-						td = int(round(time.time() * 1000)) - previous_time >= (FIRST_DETECTION_DELAY * 1000)
+						td = int(round(time.time() * 1000)) - previous_time >= 1000
 						if estimated_distance < previous_distance and td:
 							print('previous_distance', previous_distance, 'estimated_distance', estimated_distance)
 							global speaker
@@ -134,7 +110,30 @@ def video_source():
 
 					vehicle_detections[tracker_id]['distance'] = estimated_distance
 
+				# vehicle_index = get_index(tracker_id)
+				# vehicle_path = os.path.join(_run, str(vehicle_index))
+				# fu.create_folder(vehicle_path)
+				# vehicle_path_count = fu.count_files(vehicle_path) + 1
+				# vehicle_path_img = os.path.join(vehicle_path, '{}.jpg'.format(vehicle_path_count))
+
+				# detect_img = fru.frame_bb(frame0, xyxy)
+				# detect_img = fru.frame_center_text(detect_img, xyxy, '{}, {}'.format(px_w, px_h))
+				# fru.frame_save(detect_img, vehicle_path_img)
+
 				frame = fru.frame_center_text(frame, xyxy, '{:.2f}'.format(estimated_distance))
+
+				# csv_rows.append({
+				# 	'Index': vehicle_index,
+				# 	'Child': vehicle_path_count,
+				# 	'Class': name,
+				# 	'Known Width': distance['width'],
+				# 	'Known Height': distance['height'],
+				# 	'Pixel Width': px_w,
+				# 	'Pixel Height': px_h,
+				# 	'Distance': '',
+				# 	'Focal': '',
+				# 	'Focal Formula': '(Pixel Width x Distance) / Known Width'
+				# });
 				
 			if result.boxes.id is not None:
 				detections.tracker_id = result.boxes.id.cpu().numpy().astype(int)
@@ -154,61 +153,24 @@ def video_source():
 				labels=labels
 			)
 
-			gframe = imutils.resize(frame, height=800)
+			frame = imutils.resize(frame, height=800)
 
-			if not out:
-				vh, vw, _ = gframe.shape
-				out = cv2.VideoWriter(record_filename, fourcc, fps, (vw, vh))
+			cv2.imshow("Project Ahon", frame)
 
-			out.write(gframe)
+			# if len(labels) > 0:
+			# 	while True:
+			# 		if cv2.waitKey(1) & 0xFF==ord('q'):
+			# 			break
+			# 	break
 
 			if cv2.waitKey(1) & 0xFF==ord('q'):
 				break
 
-	# except KeyboardInterrupt:
-	# 	print('bye')
+	except KeyboardInterrupt:
+		print('bye')
 
-	except Exception as e:
-		print(e)
-
-	print('bye video_source')
-	out.release()
-
-vs = threading.Thread(target=video_source)
-
-def get_video():
-	while not exit_app:
-		_, buffer = cv2.imencode('.jpg', gframe)
-		fr = buffer.tobytes()
-		yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + fr + b'\r\n')
-
-	print('bye get_video')
-
-def signal_handler(signal, frame):
-	print('You pressed Ctrl + C')
-	global exit_app
-	exit_app = True
-	vs.join()
-	sys.exit(0)
-
-@app.route('/video')
-def video():
-	global vs
-	if not vs.is_alive():
-		vs = threading.Thread(target=video_source)
-		vs.start()
-	return Response(get_video(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-def main():
-	global gframe
-	gframe = np.zeros(shape=[512, 512, 3], dtype=np.uint8)
-
-	signal.signal(signal.SIGINT, signal_handler)
-
-	app.run(host='0.0.0.0')
-
-def main2():
-	video_source()
+	# df = pd.DataFrame(csv_rows)
+	# df.to_csv(os.path.join(_run, 'data.csv'), index=False)
 
 if __name__ == "__main__":
-	main2()
+	main()
